@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using MiBackend.Models;
+//using MiBackend.Models;
+using MiBackend.Features.Productos;
 
 namespace MiBackend.Data;
 
