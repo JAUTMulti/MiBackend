@@ -126,10 +126,14 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     /// <summary>Obtiene los servidores de una empresa con sus interfaces e IP.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ServidorResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<ServidorResponse>>> ObtenerTodos(
         int empresaId,
         CancellationToken cancellationToken)
     {
+        if (!await context.Empresas.AnyAsync(empresa => empresa.Id == empresaId, cancellationToken))
+            return NotFound(new { mensaje = "El recurso solicitado no existe." });
+
         var servidores = await context.Servidores
             .AsNoTracking()
             .Where(servidor => servidor.EmpresaId == empresaId)
@@ -152,7 +156,9 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         CancellationToken cancellationToken)
     {
         var servidor = await ConsultarServidor(empresaId, servidorId, cancellationToken);
-        return servidor is null ? NotFound() : Ok(Mapear(servidor));
+        return servidor is null
+            ? NotFound(new { mensaje = "El recurso solicitado no existe." })
+            : Ok(Mapear(servidor));
     }
 
     /// <summary>Registra un servidor, sus interfaces e IP iniciales.</summary>
@@ -269,7 +275,9 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         CancellationToken cancellationToken)
     {
         var interfaz = await ConsultarInterfaz(empresaId, servidorId, interfazId, cancellationToken);
-        return interfaz is null ? NotFound() : Ok(Mapear(interfaz));
+        return interfaz is null
+            ? NotFound(new { mensaje = "El recurso solicitado no existe." })
+            : Ok(Mapear(interfaz));
     }
 
     /// <summary>Agrega una interfaz de red y sus IP a un servidor.</summary>

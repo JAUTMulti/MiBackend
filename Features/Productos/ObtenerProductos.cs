@@ -37,7 +37,7 @@ public class ObtenerProductosController : ControllerBase
             .FirstOrDefaultAsync();
 
         if (producto is null)
-            return NotFound(new { mensaje = $"No se encontró el producto con ID {id}." });
+            return NotFound(new { mensaje = "El recurso solicitado no existe." });
 
         return Ok(producto);
     }

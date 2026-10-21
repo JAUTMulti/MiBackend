@@ -130,10 +130,14 @@ public sealed class EquiposRedController(AppDbContext context) : ControllerBase
     /// <summary>Lista los equipos de red de una empresa.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<EquipoRedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<EquipoRedResponse>>> ObtenerTodos(
         int empresaId,
         CancellationToken cancellationToken)
     {
+        if (!await context.Empresas.AnyAsync(empresa => empresa.Id == empresaId, cancellationToken))
+            return NotFound(new { mensaje = "El recurso solicitado no existe." });
+
         var equipos = await ConsultaEquipos(empresaId)
             .OrderBy(equipo => equipo.Nombre)
             .ToListAsync(cancellationToken);
@@ -153,7 +157,9 @@ public sealed class EquiposRedController(AppDbContext context) : ControllerBase
         var equipo = await ConsultaEquipos(empresaId)
             .FirstOrDefaultAsync(equipo => equipo.Id == equipoId, cancellationToken);
 
-        return equipo is null ? NotFound() : Ok(Mapear(equipo));
+        return equipo is null
+            ? NotFound(new { mensaje = "El recurso solicitado no existe." })
+            : Ok(Mapear(equipo));
     }
 
     /// <summary>Registra un equipo de red con sus interfaces e IP.</summary>

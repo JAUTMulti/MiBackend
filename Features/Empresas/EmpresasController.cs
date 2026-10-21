@@ -99,7 +99,9 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
             .Include(empresa => empresa.Sedes)
             .FirstOrDefaultAsync(empresa => empresa.Id == id, cancellationToken);
 
-        return empresa is null ? NotFound() : Ok(Mapear(empresa));
+        return empresa is null
+            ? NotFound(new { mensaje = "El recurso solicitado no existe." })
+            : Ok(Mapear(empresa));
     }
 
     /// <summary>Crea una empresa junto con sus sedes iniciales.</summary>
