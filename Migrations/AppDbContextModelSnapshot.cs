@@ -22,6 +22,82 @@ namespace MiBackend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MiBackend.Models.DireccionIp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<int>("InterfazRedId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InterfazRedId", "Direccion")
+                        .IsUnique();
+
+                    b.ToTable("DireccionesIp");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.DispositivoRed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Fabricante")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Modelo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("NumeroSerie")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("SedeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("VersionFirmware")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SedeId");
+
+                    b.HasIndex("EmpresaId", "Nombre")
+                        .IsUnique();
+
+                    b.ToTable("DispositivosRed");
+                });
+
             modelBuilder.Entity("MiBackend.Models.Empresa", b =>
                 {
                     b.Property<int>("Id")
@@ -29,6 +105,9 @@ namespace MiBackend.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Habilitada")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Nit")
                         .IsRequired()
@@ -46,6 +125,86 @@ namespace MiBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("Empresas");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazDispositivoRed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DireccionMac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<int>("DispositivoRedId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DispositivoRedId", "Nombre")
+                        .IsUnique();
+
+                    b.ToTable("InterfacesDispositivosRed");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazRed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DireccionMac")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ServidorId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServidorId", "Nombre")
+                        .IsUnique();
+
+                    b.ToTable("InterfacesRed");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.IpDispositivoRed", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<int>("InterfazDispositivoRedId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InterfazDispositivoRedId", "Direccion")
+                        .IsUnique();
+
+                    b.ToTable("IpsDispositivosRed");
                 });
 
             modelBuilder.Entity("MiBackend.Models.Producto", b =>
@@ -94,6 +253,118 @@ namespace MiBackend.Migrations
                     b.ToTable("Sedes");
                 });
 
+            modelBuilder.Entity("MiBackend.Models.Servidor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Nucleos")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RamGb")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int?>("ServidorProxmoxId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SistemaOperativo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("VersionSistemaOperativo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
+
+                    b.HasIndex("ServidorProxmoxId");
+
+                    b.ToTable("Servidores");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.DireccionIp", b =>
+                {
+                    b.HasOne("MiBackend.Models.InterfazRed", "InterfazRed")
+                        .WithMany("DireccionesIp")
+                        .HasForeignKey("InterfazRedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InterfazRed");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.DispositivoRed", b =>
+                {
+                    b.HasOne("MiBackend.Models.Empresa", "Empresa")
+                        .WithMany("DispositivosRed")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MiBackend.Models.Sede", "Sede")
+                        .WithMany("DispositivosRed")
+                        .HasForeignKey("SedeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Empresa");
+
+                    b.Navigation("Sede");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazDispositivoRed", b =>
+                {
+                    b.HasOne("MiBackend.Models.DispositivoRed", "Dispositivo")
+                        .WithMany("Interfaces")
+                        .HasForeignKey("DispositivoRedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dispositivo");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazRed", b =>
+                {
+                    b.HasOne("MiBackend.Models.Servidor", "Servidor")
+                        .WithMany("InterfacesRed")
+                        .HasForeignKey("ServidorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Servidor");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.IpDispositivoRed", b =>
+                {
+                    b.HasOne("MiBackend.Models.InterfazDispositivoRed", "Interfaz")
+                        .WithMany("DireccionesIp")
+                        .HasForeignKey("InterfazDispositivoRedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Interfaz");
+                });
+
             modelBuilder.Entity("MiBackend.Models.Sede", b =>
                 {
                     b.HasOne("MiBackend.Models.Empresa", "Empresa")
@@ -105,9 +376,58 @@ namespace MiBackend.Migrations
                     b.Navigation("Empresa");
                 });
 
+            modelBuilder.Entity("MiBackend.Models.Servidor", b =>
+                {
+                    b.HasOne("MiBackend.Models.Empresa", "Empresa")
+                        .WithMany("Servidores")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MiBackend.Models.Servidor", "ServidorProxmox")
+                        .WithMany("MaquinasVirtuales")
+                        .HasForeignKey("ServidorProxmoxId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Empresa");
+
+                    b.Navigation("ServidorProxmox");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.DispositivoRed", b =>
+                {
+                    b.Navigation("Interfaces");
+                });
+
             modelBuilder.Entity("MiBackend.Models.Empresa", b =>
                 {
+                    b.Navigation("DispositivosRed");
+
                     b.Navigation("Sedes");
+
+                    b.Navigation("Servidores");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazDispositivoRed", b =>
+                {
+                    b.Navigation("DireccionesIp");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.InterfazRed", b =>
+                {
+                    b.Navigation("DireccionesIp");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.Sede", b =>
+                {
+                    b.Navigation("DispositivosRed");
+                });
+
+            modelBuilder.Entity("MiBackend.Models.Servidor", b =>
+                {
+                    b.Navigation("InterfacesRed");
+
+                    b.Navigation("MaquinasVirtuales");
                 });
 #pragma warning restore 612, 618
         }

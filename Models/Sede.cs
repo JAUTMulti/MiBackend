@@ -6,4 +6,5 @@ public class Sede
     public int EmpresaId { get; set; }
     public string Direccion { get; set; } = string.Empty;
     public Empresa Empresa { get; set; } = null!;
+    public ICollection<DispositivoRed> DispositivosRed { get; set; } = [];
 }

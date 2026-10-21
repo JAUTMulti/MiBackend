@@ -28,6 +28,9 @@ public sealed record CrearEmpresaRequest
     /// <summary>Sedes asociadas a la empresa; puede estar vacío.</summary>
     [Required]
     public List<SedeEmpresaRequest> Sedes { get; init; } = [];
+
+    /// <summary>Indica si la empresa queda habilitada. Por defecto, sí.</summary>
+    public bool Habilitada { get; init; } = true;
 }
 
 /// <summary>Datos para reemplazar la información de una empresa y sus sedes.</summary>
@@ -44,13 +47,28 @@ public sealed record ActualizarEmpresaRequest
     /// <summary>Lista completa de sedes; reemplaza las sedes existentes.</summary>
     [Required]
     public List<SedeEmpresaRequest> Sedes { get; init; } = [];
+
+    /// <summary>Indica si la empresa queda habilitada.</summary>
+    public required bool Habilitada { get; init; }
+}
+
+/// <summary>Estado habilitado o deshabilitado de una empresa.</summary>
+public sealed record CambiarEstadoEmpresaRequest
+{
+    /// <summary>Nuevo estado de la empresa.</summary>
+    public required bool Habilitada { get; init; }
 }
 
 /// <summary>Datos de una sede perteneciente a una empresa.</summary>
 public sealed record SedeEmpresaResponse(int Id, string Direccion);
 
 /// <summary>Empresa y sus sedes registradas.</summary>
-public sealed record EmpresaResponse(int Id, string Nit, string Nombre, IReadOnlyList<SedeEmpresaResponse> Sedes);
+public sealed record EmpresaResponse(
+    int Id,
+    string Nit,
+    string Nombre,
+    bool Habilitada,
+    IReadOnlyList<SedeEmpresaResponse> Sedes);
 
 [ApiController]
 [Route("api/empresas")]
@@ -104,6 +122,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
         {
             Nit = nit,
             Nombre = request.Nombre.Trim(),
+            Habilitada = request.Habilitada,
             Sedes = request.Sedes.Select(sede => new Sede { Direccion = sede.Direccion.Trim() }).ToList()
         };
 
@@ -142,12 +161,34 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
 
         empresa.Nit = nit;
         empresa.Nombre = request.Nombre.Trim();
+        empresa.Habilitada = request.Habilitada;
         context.Sedes.RemoveRange(empresa.Sedes);
         empresa.Sedes = request.Sedes
             .Select(sede => new Sede { Direccion = sede.Direccion.Trim() })
             .ToList();
 
         await context.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Habilita o deshabilita una empresa sin modificar sus sedes.</summary>
+    [HttpPatch("{id:int}/estado")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CambiarEstado(
+        int id,
+        CambiarEstadoEmpresaRequest request,
+        CancellationToken cancellationToken)
+    {
+        var empresa = await context.Empresas
+            .FirstOrDefaultAsync(empresa => empresa.Id == id, cancellationToken);
+
+        if (empresa is null)
+            return NotFound();
+
+        empresa.Habilitada = request.Habilitada;
+        await context.SaveChangesAsync(cancellationToken);
+
         return NoContent();
     }
 
@@ -178,6 +219,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
             empresa.Id,
             empresa.Nit,
             empresa.Nombre,
+            empresa.Habilitada,
             empresa.Sedes
                 .OrderBy(sede => sede.Id)
                 .Select(sede => new SedeEmpresaResponse(sede.Id, sede.Direccion))

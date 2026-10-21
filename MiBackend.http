@@ -19,6 +19,7 @@ Content-Type: application/json
 {
   "nit": "900123456-7",
   "nombre": "Empresa de ejemplo",
+  "habilitada": true,
   "sedes": [
     {
       "direccion": "Calle 10 # 20-30, Bogotá"
@@ -38,6 +39,7 @@ Content-Type: application/json
 {
   "nit": "900123456-7",
   "nombre": "Empresa de ejemplo actualizada",
+  "habilitada": true,
   "sedes": [
     {
       "direccion": "Calle 11 # 21-31, Bogotá"
@@ -47,5 +49,247 @@ Content-Type: application/json
 
 ###
 
+### Deshabilitar una empresa sin modificar sus sedes
+PATCH {{MiBackend_HostAddress}}/api/empresas/1/estado
+Content-Type: application/json
+
+{
+  "habilitada": false
+}
+
+###
+
 ### Eliminar una empresa y sus sedes
 DELETE {{MiBackend_HostAddress}}/api/empresas/1
+
+###
+
+### Registrar un firewall Fortinet en una sede de la empresa
+POST {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
+Content-Type: application/json
+
+{
+  "sedeId": 1,
+  "nombre": "Firewall principal Cali",
+  "tipo": "Firewall",
+  "fabricante": "Fortinet",
+  "modelo": "FortiGate 60F",
+  "numeroSerie": "FGT60F1234567890",
+  "versionFirmware": "FortiOS 7.4.5",
+  "interfaces": [
+    {
+      "nombre": "wan1",
+      "direccionMac": "AA:BB:CC:DD:EE:10",
+      "direccionesIp": [
+        { "direccion": "203.0.113.10" }
+      ]
+    },
+    {
+      "nombre": "internal",
+      "direccionMac": "AA:BB:CC:DD:EE:11",
+      "direccionesIp": [
+        { "direccion": "192.168.10.1" },
+        { "direccion": "2001:db8:10::1" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Registrar un switch administrable MikroTik
+POST {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
+Content-Type: application/json
+
+{
+  "sedeId": 1,
+  "nombre": "Switch administrable oficina",
+  "tipo": "SwitchAdministrable",
+  "fabricante": "MikroTik",
+  "modelo": "CRS326-24G-2S+",
+  "numeroSerie": "A1B2C3D4E5F6",
+  "versionFirmware": "RouterOS 7.15",
+  "interfaces": [
+    {
+      "nombre": "vlan10",
+      "direccionesIp": [
+        { "direccion": "192.168.10.2" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Listar equipos de red de la empresa con interfaces e IP
+GET {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
+Accept: application/json
+
+###
+
+### Consultar un equipo de red
+GET {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
+Accept: application/json
+
+###
+
+### Actualizar el equipo y reemplazar su lista completa de interfaces
+PUT {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
+Content-Type: application/json
+
+{
+  "sedeId": 1,
+  "nombre": "Firewall principal Cali",
+  "tipo": "Firewall",
+  "fabricante": "Fortinet",
+  "modelo": "FortiGate 60F",
+  "numeroSerie": "FGT60F1234567890",
+  "versionFirmware": "FortiOS 7.4.6",
+  "interfaces": [
+    {
+      "nombre": "wan1",
+      "direccionMac": "AA:BB:CC:DD:EE:10",
+      "direccionesIp": [
+        { "direccion": "203.0.113.10" }
+      ]
+    },
+    {
+      "nombre": "internal",
+      "direccionMac": "AA:BB:CC:DD:EE:11",
+      "direccionesIp": [
+        { "direccion": "192.168.10.1" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Eliminar un equipo de red y sus interfaces/IP
+DELETE {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
+
+###
+
+### Registrar un host Proxmox de la empresa
+POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Content-Type: application/json
+
+{
+  "nombre": "Proxmox principal",
+  "tipo": "Proxmox",
+  "sistemaOperativo": "Proxmox VE",
+  "versionSistemaOperativo": "8.3",
+  "nucleos": 32,
+  "ramGb": 128,
+  "interfacesRed": [
+    {
+      "nombre": "vmbr0",
+      "direccionMac": "AA:BB:CC:DD:EE:01",
+      "direccionesIp": [
+        { "direccion": "192.168.1.10" },
+        { "direccion": "2001:db8::10" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Registrar una máquina virtual alojada en un Proxmox existente.
+### Reemplaza servidorProxmoxId por el ID devuelto al crear el host.
+POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Content-Type: application/json
+
+{
+  "nombre": "Servidor Ubuntu de aplicaciones",
+  "tipo": "Virtual",
+  "sistemaOperativo": "Ubuntu Server",
+  "versionSistemaOperativo": "24.04 LTS",
+  "nucleos": 8,
+  "ramGb": 32,
+  "servidorProxmoxId": 1,
+  "interfacesRed": [
+    {
+      "nombre": "ens18",
+      "direccionMac": "AA:BB:CC:DD:EE:02",
+      "direccionesIp": [
+        { "direccion": "10.0.0.25" },
+        { "direccion": "2001:db8::25" }
+      ]
+    },
+    {
+      "nombre": "ens19",
+      "direccionesIp": [
+        { "direccion": "172.16.0.25" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Consultar todos los servidores, interfaces e IP de una empresa
+GET {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Accept: application/json
+
+###
+
+### Consultar un servidor por empresa e ID de servidor
+GET {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
+Accept: application/json
+
+###
+
+### Actualizar recursos, sistema operativo o host de un servidor.
+### Las interfaces existentes se conservan.
+PUT {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
+Content-Type: application/json
+
+{
+  "nombre": "Servidor Ubuntu de aplicaciones",
+  "tipo": "Virtual",
+  "sistemaOperativo": "Ubuntu Server",
+  "versionSistemaOperativo": "24.04.1 LTS",
+  "nucleos": 12,
+  "ramGb": 48,
+  "servidorProxmoxId": 1
+}
+
+###
+
+### Agregar una interfaz y sus direcciones IP al servidor
+POST {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces
+Content-Type: application/json
+
+{
+  "nombre": "ens20",
+  "direccionMac": "AA:BB:CC:DD:EE:03",
+  "direccionesIp": [
+    { "direccion": "192.168.50.25" }
+  ]
+}
+
+###
+
+### Reemplazar los datos y todas las IP de una interfaz
+PUT {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces/1
+Content-Type: application/json
+
+{
+  "nombre": "ens18",
+  "direccionMac": "AA:BB:CC:DD:EE:02",
+  "direccionesIp": [
+    { "direccion": "10.0.0.26" },
+    { "direccion": "2001:db8::26" }
+  ]
+}
+
+###
+
+### Eliminar una interfaz y sus IP
+DELETE {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces/1
+
+###
+
+### Eliminar un servidor (las máquinas virtuales quedan sin host asociado)
+DELETE {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
