@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MiBackend.Data;
+using MiBackend.Models;
 
 namespace MiBackend.Features.Productos;
 

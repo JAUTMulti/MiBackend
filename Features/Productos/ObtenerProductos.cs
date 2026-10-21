@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiBackend.Data;
+using MiBackend.Models;
 
 namespace MiBackend.Features.Productos;
 

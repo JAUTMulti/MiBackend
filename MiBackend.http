@@ -1,6 +1,51 @@
 @MiBackend_HostAddress = http://localhost:5135
 
-GET {{MiBackend_HostAddress}}/weatherforecast/
+### Listar empresas
+GET {{MiBackend_HostAddress}}/api/empresas
 Accept: application/json
 
 ###
+
+### Consultar una empresa
+GET {{MiBackend_HostAddress}}/api/empresas/1
+Accept: application/json
+
+###
+
+### Crear una empresa con sedes
+POST {{MiBackend_HostAddress}}/api/empresas
+Content-Type: application/json
+
+{
+  "nit": "900123456-7",
+  "nombre": "Empresa de ejemplo",
+  "sedes": [
+    {
+      "direccion": "Calle 10 # 20-30, Bogotá"
+    },
+    {
+      "direccion": "Carrera 5 # 12-40, Medellín"
+    }
+  ]
+}
+
+###
+
+### Actualizar una empresa y reemplazar todas sus sedes
+PUT {{MiBackend_HostAddress}}/api/empresas/1
+Content-Type: application/json
+
+{
+  "nit": "900123456-7",
+  "nombre": "Empresa de ejemplo actualizada",
+  "sedes": [
+    {
+      "direccion": "Calle 11 # 21-31, Bogotá"
+    }
+  ]
+}
+
+###
+
+### Eliminar una empresa y sus sedes
+DELETE {{MiBackend_HostAddress}}/api/empresas/1
