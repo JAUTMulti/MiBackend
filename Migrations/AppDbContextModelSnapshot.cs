@@ -264,6 +264,15 @@ namespace MiBackend.Migrations
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("IpGestionHardware")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<string>("Naturaleza")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -272,20 +281,19 @@ namespace MiBackend.Migrations
                     b.Property<int>("Nucleos")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("RamGb")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
-
-                    b.Property<int?>("ServidorProxmoxId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SistemaOperativo")
+                    b.Property<string>("Plataforma")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("Tipo")
-                        .IsRequired()
+                    b.Property<decimal>("RamGb")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int?>("ServidorAnfitrionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TipoGestionHardware")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
@@ -298,7 +306,7 @@ namespace MiBackend.Migrations
 
                     b.HasIndex("EmpresaId");
 
-                    b.HasIndex("ServidorProxmoxId");
+                    b.HasIndex("ServidorAnfitrionId");
 
                     b.ToTable("Servidores");
                 });
@@ -384,14 +392,14 @@ namespace MiBackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MiBackend.Models.Servidor", "ServidorProxmox")
-                        .WithMany("MaquinasVirtuales")
-                        .HasForeignKey("ServidorProxmoxId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("MiBackend.Models.Servidor", "ServidorAnfitrion")
+                        .WithMany("ServidoresAlojados")
+                        .HasForeignKey("ServidorAnfitrionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Empresa");
 
-                    b.Navigation("ServidorProxmox");
+                    b.Navigation("ServidorAnfitrion");
                 });
 
             modelBuilder.Entity("MiBackend.Models.DispositivoRed", b =>
@@ -427,7 +435,7 @@ namespace MiBackend.Migrations
                 {
                     b.Navigation("InterfacesRed");
 
-                    b.Navigation("MaquinasVirtuales");
+                    b.Navigation("ServidoresAlojados");
                 });
 #pragma warning restore 612, 618
         }

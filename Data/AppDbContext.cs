@@ -75,18 +75,22 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Servidor>(entity =>
         {
             entity.Property(servidor => servidor.Nombre).HasMaxLength(150);
-            entity.Property(servidor => servidor.Tipo).HasConversion<string>().HasMaxLength(20);
-            entity.Property(servidor => servidor.SistemaOperativo).HasMaxLength(100);
+            entity.Property(servidor => servidor.Naturaleza).HasConversion<string>().HasMaxLength(20);
+            entity.Property(servidor => servidor.Plataforma).HasMaxLength(100);
             entity.Property(servidor => servidor.VersionSistemaOperativo).HasMaxLength(100);
             entity.Property(servidor => servidor.RamGb).HasPrecision(10, 2);
+            entity.Property(servidor => servidor.TipoGestionHardware)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(servidor => servidor.IpGestionHardware).HasMaxLength(45);
             entity.HasOne(servidor => servidor.Empresa)
                 .WithMany(empresa => empresa.Servidores)
                 .HasForeignKey(servidor => servidor.EmpresaId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(servidor => servidor.ServidorProxmox)
-                .WithMany(servidor => servidor.MaquinasVirtuales)
-                .HasForeignKey(servidor => servidor.ServidorProxmoxId)
-                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(servidor => servidor.ServidorAnfitrion)
+                .WithMany(servidor => servidor.ServidoresAlojados)
+                .HasForeignKey(servidor => servidor.ServidorAnfitrionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<InterfazRed>(entity =>

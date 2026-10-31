@@ -170,17 +170,19 @@ DELETE {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
 
 ###
 
-### Registrar un host Proxmox de la empresa
+### Registrar un servidor físico con plataforma Proxmox
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
 
 {
   "nombre": "Proxmox principal",
-  "tipo": "Proxmox",
-  "sistemaOperativo": "Proxmox VE",
+  "naturaleza": "Fisico",
+  "plataforma": "Proxmox VE",
   "versionSistemaOperativo": "8.3",
   "nucleos": 32,
   "ramGb": 128,
+  "tipoGestionHardware": "Ipmi",
+  "ipGestionHardware": "192.168.1.11",
   "interfacesRed": [
     {
       "nombre": "vmbr0",
@@ -195,19 +197,68 @@ Content-Type: application/json
 
 ###
 
-### Registrar una máquina virtual alojada en un Proxmox existente.
-### Reemplaza servidorProxmoxId por el ID devuelto al crear el host.
+### Registrar un servidor físico Windows Server con iDRAC
+POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Content-Type: application/json
+
+{
+  "nombre": "Host Hyper-V sucursal",
+  "naturaleza": "Fisico",
+  "plataforma": "Windows Server",
+  "versionSistemaOperativo": "2022 Datacenter",
+  "nucleos": 24,
+  "ramGb": 96,
+  "tipoGestionHardware": "Idrac",
+  "ipGestionHardware": "192.168.2.11",
+  "interfacesRed": [
+    {
+      "nombre": "NIC administración",
+      "direccionMac": "AA:BB:CC:DD:EE:04",
+      "direccionesIp": [
+        { "direccion": "192.168.2.10" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Registrar un servidor físico zVirt
+POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Content-Type: application/json
+
+{
+  "nombre": "Host zVirt principal",
+  "naturaleza": "Fisico",
+  "plataforma": "zVirt",
+  "versionSistemaOperativo": "4.5",
+  "nucleos": 32,
+  "ramGb": 256,
+  "interfacesRed": [
+    {
+      "nombre": "eno1",
+      "direccionesIp": [
+        { "direccion": "192.168.3.10" }
+      ]
+    }
+  ]
+}
+
+###
+
+### Registrar una máquina virtual alojada en un servidor físico existente.
+### Reemplaza servidorAnfitrionId por el ID del anfitrión físico (Proxmox, Hyper-V, zVirt, etc.).
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
 
 {
   "nombre": "Servidor Ubuntu de aplicaciones",
-  "tipo": "Virtual",
-  "sistemaOperativo": "Ubuntu Server",
+  "naturaleza": "Virtual",
+  "plataforma": "Ubuntu Server",
   "versionSistemaOperativo": "24.04 LTS",
   "nucleos": 8,
   "ramGb": 32,
-  "servidorProxmoxId": 1,
+  "servidorAnfitrionId": 1,
   "interfacesRed": [
     {
       "nombre": "ens18",
@@ -240,19 +291,19 @@ Accept: application/json
 
 ###
 
-### Actualizar recursos, sistema operativo o host de un servidor.
+### Actualizar recursos, plataforma o anfitrión de un servidor.
 ### Las interfaces existentes se conservan.
 PUT {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
 Content-Type: application/json
 
 {
   "nombre": "Servidor Ubuntu de aplicaciones",
-  "tipo": "Virtual",
-  "sistemaOperativo": "Ubuntu Server",
+  "naturaleza": "Virtual",
+  "plataforma": "Ubuntu Server",
   "versionSistemaOperativo": "24.04.1 LTS",
   "nucleos": 12,
   "ramGb": 48,
-  "servidorProxmoxId": 1
+  "servidorAnfitrionId": 1
 }
 
 ###

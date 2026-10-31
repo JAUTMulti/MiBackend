@@ -38,12 +38,12 @@ public sealed record CrearServidorRequest
     [Required, StringLength(150)]
     public required string Nombre { get; init; }
 
-    /// <summary>Indica si es un host Proxmox, una máquina virtual o un servidor físico.</summary>
-    public required TipoServidor Tipo { get; init; }
+    /// <summary>Indica si este servidor es hardware físico o una máquina virtual.</summary>
+    public required NaturalezaServidor Naturaleza { get; init; }
 
-    /// <summary>Sistema operativo instalado, por ejemplo Proxmox VE, Ubuntu Server o Windows Server.</summary>
+    /// <summary>Plataforma instalada, por ejemplo Proxmox VE, Windows Server, Ubuntu Server o zVirt.</summary>
     [Required, StringLength(100)]
-    public required string SistemaOperativo { get; init; }
+    public required string Plataforma { get; init; }
 
     /// <summary>Versión del sistema operativo.</summary>
     [Required, StringLength(100)]
@@ -54,11 +54,17 @@ public sealed record CrearServidorRequest
     public int Nucleos { get; init; }
 
     /// <summary>Memoria RAM asignada en GB.</summary>
-    [Range(typeof(decimal), "0.01", "1000000")]
     public decimal RamGb { get; init; }
 
-    /// <summary>Identificador del host Proxmox que aloja esta máquina virtual, si aplica.</summary>
-    public int? ServidorProxmoxId { get; init; }
+    /// <summary>Identificador del servidor físico que aloja esta máquina virtual.</summary>
+    public int? ServidorAnfitrionId { get; init; }
+
+    /// <summary>Tipo de controlador de gestión fuera de banda, por ejemplo iLO, iDRAC o IPMI.</summary>
+    public TipoGestionHardware? TipoGestionHardware { get; init; }
+
+    /// <summary>IP del controlador de gestión del hardware físico.</summary>
+    [StringLength(45)]
+    public string? IpGestionHardware { get; init; }
 
     /// <summary>Interfaces de red iniciales del servidor.</summary>
     [Required]
@@ -72,12 +78,12 @@ public sealed record ActualizarServidorRequest
     [Required, StringLength(150)]
     public required string Nombre { get; init; }
 
-    /// <summary>Indica si es un host Proxmox, una máquina virtual o un servidor físico.</summary>
-    public required TipoServidor Tipo { get; init; }
+    /// <summary>Indica si este servidor es hardware físico o una máquina virtual.</summary>
+    public required NaturalezaServidor Naturaleza { get; init; }
 
-    /// <summary>Sistema operativo instalado.</summary>
+    /// <summary>Plataforma instalada, por ejemplo Proxmox VE, Windows Server, Ubuntu Server o zVirt.</summary>
     [Required, StringLength(100)]
-    public required string SistemaOperativo { get; init; }
+    public required string Plataforma { get; init; }
 
     /// <summary>Versión del sistema operativo.</summary>
     [Required, StringLength(100)]
@@ -88,11 +94,17 @@ public sealed record ActualizarServidorRequest
     public int Nucleos { get; init; }
 
     /// <summary>Memoria RAM asignada en GB.</summary>
-    [Range(typeof(decimal), "0.01", "1000000")]
     public decimal RamGb { get; init; }
 
-    /// <summary>Identificador del host Proxmox que aloja esta máquina virtual, si aplica.</summary>
-    public int? ServidorProxmoxId { get; init; }
+    /// <summary>Identificador del servidor físico que aloja esta máquina virtual.</summary>
+    public int? ServidorAnfitrionId { get; init; }
+
+    /// <summary>Tipo de controlador de gestión fuera de banda, por ejemplo iLO, iDRAC o IPMI.</summary>
+    public TipoGestionHardware? TipoGestionHardware { get; init; }
+
+    /// <summary>IP del controlador de gestión del hardware físico.</summary>
+    [StringLength(45)]
+    public string? IpGestionHardware { get; init; }
 }
 
 /// <summary>Dirección IP almacenada en una interfaz.</summary>
@@ -105,18 +117,20 @@ public sealed record InterfazRedServidorResponse(
     string? DireccionMac,
     IReadOnlyList<DireccionIpServidorResponse> DireccionesIp);
 
-/// <summary>Servidor y sus recursos, sistema operativo, host Proxmox e interfaces de red.</summary>
+/// <summary>Servidor, plataforma, recursos, anfitrión, gestión del hardware e interfaces.</summary>
 public sealed record ServidorResponse(
     int Id,
     int EmpresaId,
-    int? ServidorProxmoxId,
-    string? NombreServidorProxmox,
+    NaturalezaServidor Naturaleza,
+    int? ServidorAnfitrionId,
+    string? NombreServidorAnfitrion,
     string Nombre,
-    TipoServidor Tipo,
-    string SistemaOperativo,
+    string Plataforma,
     string VersionSistemaOperativo,
     int Nucleos,
     decimal RamGb,
+    TipoGestionHardware? TipoGestionHardware,
+    string? IpGestionHardware,
     IReadOnlyList<InterfazRedServidorResponse> InterfacesRed);
 
 [ApiController]
@@ -137,7 +151,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         var servidores = await context.Servidores
             .AsNoTracking()
             .Where(servidor => servidor.EmpresaId == empresaId)
-            .Include(servidor => servidor.ServidorProxmox)
+            .Include(servidor => servidor.ServidorAnfitrion)
             .Include(servidor => servidor.InterfacesRed)
                 .ThenInclude(interfaz => interfaz.DireccionesIp)
             .OrderBy(servidor => servidor.Nombre)
@@ -171,25 +185,32 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         CrearServidorRequest request,
         CancellationToken cancellationToken)
     {
-        if (!DatosValidos(request))
-            return BadRequest(new { mensaje = "Revisa el tipo, los recursos y las interfaces/IP del servidor." });
+        var errores = ValidarDatos(request);
+        if (errores.Count > 0)
+            return BadRequest(new { mensaje = "No se pudo crear el servidor. Corrige los campos indicados.", errores });
 
         if (!await context.Empresas.AnyAsync(empresa => empresa.Id == empresaId, cancellationToken))
-            return NotFound(new { mensaje = $"No se encontró la empresa con ID {empresaId}." });
+            return NotFound(new { mensaje = "La empresa seleccionada no existe." });
 
-        if (!await HostProxmoxValido(request.Tipo, request.ServidorProxmoxId, cancellationToken))
-            return BadRequest(new { mensaje = "El host indicado debe existir y ser un servidor Proxmox." });
+        var errorAnfitrion = await ValidarServidorAnfitrion(
+            request.Naturaleza,
+            request.ServidorAnfitrionId,
+            cancellationToken);
+        if (errorAnfitrion is not null)
+            return BadRequest(new { mensaje = errorAnfitrion });
 
         var servidor = new Servidor
         {
             EmpresaId = empresaId,
             Nombre = request.Nombre.Trim(),
-            Tipo = request.Tipo,
-            SistemaOperativo = request.SistemaOperativo.Trim(),
+            Naturaleza = request.Naturaleza,
+            Plataforma = request.Plataforma.Trim(),
             VersionSistemaOperativo = request.VersionSistemaOperativo.Trim(),
             Nucleos = request.Nucleos,
             RamGb = request.RamGb,
-            ServidorProxmoxId = request.ServidorProxmoxId,
+            ServidorAnfitrionId = request.ServidorAnfitrionId,
+            TipoGestionHardware = request.TipoGestionHardware,
+            IpGestionHardware = NormalizarIp(request.IpGestionHardware),
             InterfacesRed = request.InterfacesRed.Select(CrearInterfaz).ToList()
         };
 
@@ -215,8 +236,9 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         ActualizarServidorRequest request,
         CancellationToken cancellationToken)
     {
-        if (!DatosValidos(request))
-            return BadRequest(new { mensaje = "Revisa el tipo y los recursos del servidor." });
+        var errores = ValidarDatos(request);
+        if (errores.Count > 0)
+            return BadRequest(new { mensaje = "No se pudo actualizar el servidor. Corrige los campos indicados.", errores });
 
         var servidor = await context.Servidores
             .FirstOrDefaultAsync(
@@ -226,37 +248,57 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         if (servidor is null)
             return NotFound();
 
-        if (!await HostProxmoxValido(request.Tipo, request.ServidorProxmoxId, cancellationToken, servidorId))
-            return BadRequest(new { mensaje = "El host indicado debe existir y ser un servidor Proxmox." });
-
-        if (servidor.Tipo == TipoServidor.Proxmox &&
-            request.Tipo != TipoServidor.Proxmox &&
+        if (servidor.Naturaleza == NaturalezaServidor.Fisico &&
+            request.Naturaleza != NaturalezaServidor.Fisico &&
             await context.Servidores.AnyAsync(
-                maquinaVirtual => maquinaVirtual.ServidorProxmoxId == servidorId,
+                alojado => alojado.ServidorAnfitrionId == servidorId,
                 cancellationToken))
-            return Conflict(new { mensaje = "No se puede cambiar el tipo de un Proxmox que aloja máquinas virtuales." });
+            return Conflict(new { mensaje = "No se puede convertir en virtual un servidor que aloja otros servidores." });
+
+        var errorAnfitrion = await ValidarServidorAnfitrion(
+            request.Naturaleza,
+            request.ServidorAnfitrionId,
+            cancellationToken,
+            servidorId);
+        if (errorAnfitrion is not null)
+            return BadRequest(new { mensaje = errorAnfitrion });
 
         servidor.Nombre = request.Nombre.Trim();
-        servidor.Tipo = request.Tipo;
-        servidor.SistemaOperativo = request.SistemaOperativo.Trim();
+        servidor.Naturaleza = request.Naturaleza;
+        servidor.Plataforma = request.Plataforma.Trim();
         servidor.VersionSistemaOperativo = request.VersionSistemaOperativo.Trim();
         servidor.Nucleos = request.Nucleos;
         servidor.RamGb = request.RamGb;
-        servidor.ServidorProxmoxId = request.ServidorProxmoxId;
+        servidor.ServidorAnfitrionId = request.ServidorAnfitrionId;
+        servidor.TipoGestionHardware = request.TipoGestionHardware;
+        servidor.IpGestionHardware = NormalizarIp(request.IpGestionHardware);
 
         await context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
-    /// <summary>Elimina un servidor; las máquinas virtuales alojadas quedan sin host asociado.</summary>
+    /// <summary>Elimina un servidor que no tenga otras máquinas virtuales alojadas.</summary>
     [HttpDelete("{servidorId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Eliminar(
         int empresaId,
         int servidorId,
         CancellationToken cancellationToken)
     {
+        var existe = await context.Servidores.AnyAsync(
+            servidor => servidor.Id == servidorId && servidor.EmpresaId == empresaId,
+            cancellationToken);
+
+        if (!existe)
+            return NotFound();
+
+        if (await context.Servidores.AnyAsync(
+                alojado => alojado.ServidorAnfitrionId == servidorId,
+                cancellationToken))
+            return Conflict(new { mensaje = "No se puede eliminar un servidor que aloja otras máquinas virtuales." });
+
         var filasAfectadas = await context.Servidores
             .Where(servidor => servidor.Id == servidorId && servidor.EmpresaId == empresaId)
             .ExecuteDeleteAsync(cancellationToken);
@@ -379,7 +421,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         context.Servidores
             .AsNoTracking()
             .Where(servidor => servidor.Id == servidorId && servidor.EmpresaId == empresaId)
-            .Include(servidor => servidor.ServidorProxmox)
+            .Include(servidor => servidor.ServidorAnfitrion)
             .Include(servidor => servidor.InterfacesRed)
                 .ThenInclude(interfaz => interfaz.DireccionesIp)
             .FirstOrDefaultAsync(cancellationToken);
@@ -396,75 +438,180 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
             .Include(interfaz => interfaz.DireccionesIp)
             .FirstOrDefaultAsync(cancellationToken);
 
-    private async Task<bool> HostProxmoxValido(
-        TipoServidor tipo,
-        int? servidorProxmoxId,
+    private async Task<string?> ValidarServidorAnfitrion(
+        NaturalezaServidor naturaleza,
+        int? servidorAnfitrionId,
         CancellationToken cancellationToken,
         int? servidorActualId = null)
     {
-        if (!Enum.IsDefined(tipo) || (tipo == TipoServidor.Proxmox && servidorProxmoxId.HasValue))
-            return false;
+        if (naturaleza == NaturalezaServidor.Virtual && !servidorAnfitrionId.HasValue)
+            return "Una máquina virtual debe indicar el servidor físico anfitrión en 'servidorAnfitrionId'.";
 
-        if (!servidorProxmoxId.HasValue)
-            return true;
+        if (naturaleza == NaturalezaServidor.Fisico && servidorAnfitrionId.HasValue)
+            return "Un servidor físico no debe indicar 'servidorAnfitrionId'.";
 
-        return tipo == TipoServidor.Virtual &&
-               servidorProxmoxId.Value != servidorActualId &&
-               await context.Servidores.AnyAsync(
-                   servidor => servidor.Id == servidorProxmoxId.Value && servidor.Tipo == TipoServidor.Proxmox,
-                   cancellationToken);
+        if (!servidorAnfitrionId.HasValue)
+            return null;
+
+        if (servidorAnfitrionId.Value == servidorActualId)
+            return "Un servidor no puede ser su propio anfitrión.";
+
+        var anfitrionExiste = await context.Servidores.AnyAsync(
+            servidor => servidor.Id == servidorAnfitrionId.Value &&
+                        servidor.Naturaleza == NaturalezaServidor.Fisico,
+            cancellationToken);
+
+        return anfitrionExiste
+            ? null
+            : "El servidor anfitrión indicado no existe o no es un servidor físico.";
     }
 
-    private static bool DatosValidos(CrearServidorRequest request) =>
-        DatosValidos(
+    private static List<string> ValidarDatos(CrearServidorRequest request)
+    {
+        var errores = ValidarDatosComunes(
             request.Nombre,
-            request.Tipo,
-            request.SistemaOperativo,
+            request.Naturaleza,
+            request.Plataforma,
             request.VersionSistemaOperativo,
             request.Nucleos,
-            request.RamGb) &&
-        request.InterfacesRed is not null &&
-        request.InterfacesRed.All(interfaz => interfaz is not null && DatosValidos(interfaz)) &&
-        request.InterfacesRed
-            .Select(interfaz => interfaz.Nombre.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Count() == request.InterfacesRed.Count;
+            request.RamGb,
+            request.TipoGestionHardware,
+            request.IpGestionHardware);
 
-    private static bool DatosValidos(ActualizarServidorRequest request) =>
-        DatosValidos(
+        if (request.InterfacesRed is null)
+        {
+            errores.Add("El campo 'interfacesRed' es obligatorio. Si el servidor aún no tiene interfaces, envía una lista vacía.");
+            return errores;
+        }
+
+        var nombres = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < request.InterfacesRed.Count; index++)
+        {
+            var interfaz = request.InterfacesRed[index];
+            if (interfaz is null)
+            {
+                errores.Add($"La interfaz en la posición {index} no puede ser nula.");
+                continue;
+            }
+
+            ValidarInterfaz(interfaz, index, errores);
+            if (!string.IsNullOrWhiteSpace(interfaz.Nombre) &&
+                !nombres.Add(interfaz.Nombre.Trim()))
+                errores.Add($"El nombre de interfaz '{interfaz.Nombre}' está repetido.");
+        }
+
+        return errores;
+    }
+
+    private static List<string> ValidarDatos(ActualizarServidorRequest request) =>
+        ValidarDatosComunes(
             request.Nombre,
-            request.Tipo,
-            request.SistemaOperativo,
+            request.Naturaleza,
+            request.Plataforma,
             request.VersionSistemaOperativo,
             request.Nucleos,
-            request.RamGb);
+            request.RamGb,
+            request.TipoGestionHardware,
+            request.IpGestionHardware);
 
-    private static bool DatosValidos(
-        string nombre,
-        TipoServidor tipo,
-        string sistemaOperativo,
-        string versionSistemaOperativo,
+    private static List<string> ValidarDatosComunes(
+        string? nombre,
+        NaturalezaServidor naturaleza,
+        string? plataforma,
+        string? versionSistemaOperativo,
         int nucleos,
-        decimal ramGb) =>
-        !string.IsNullOrWhiteSpace(nombre) &&
-        Enum.IsDefined(tipo) &&
-        !string.IsNullOrWhiteSpace(sistemaOperativo) &&
-        !string.IsNullOrWhiteSpace(versionSistemaOperativo) &&
-        nucleos > 0 &&
-        ramGb > 0;
+        decimal ramGb,
+        TipoGestionHardware? tipoGestionHardware,
+        string? ipGestionHardware)
+    {
+        var errores = new List<string>();
 
-    private static bool DatosValidos(InterfazRedServidorRequest request) =>
-        !string.IsNullOrWhiteSpace(request.Nombre) &&
-        (string.IsNullOrWhiteSpace(request.DireccionMac) || EsMacValida(request.DireccionMac)) &&
-        request.DireccionesIp is not null &&
-        request.DireccionesIp.All(ip =>
-            ip is not null &&
-            !string.IsNullOrWhiteSpace(ip.Direccion) &&
-            IPAddress.TryParse(ip.Direccion.Trim(), out _)) &&
-        request.DireccionesIp
-            .Select(ip => ip.Direccion.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Count() == request.DireccionesIp.Count;
+        if (string.IsNullOrWhiteSpace(nombre))
+            errores.Add("El nombre es obligatorio.");
+        else if (nombre.Trim().Length > 150)
+            errores.Add("El nombre no puede superar los 150 caracteres.");
+
+        if (!Enum.IsDefined(naturaleza))
+            errores.Add("La naturaleza debe ser 'Fisico' o 'Virtual'.");
+
+        if (string.IsNullOrWhiteSpace(plataforma))
+            errores.Add("La plataforma es obligatoria (por ejemplo Proxmox VE, Windows Server, Ubuntu Server o zVirt).");
+        else if (plataforma.Trim().Length > 100)
+            errores.Add("La plataforma no puede superar los 100 caracteres.");
+
+        if (string.IsNullOrWhiteSpace(versionSistemaOperativo))
+            errores.Add("La versión del sistema operativo es obligatoria.");
+        else if (versionSistemaOperativo.Trim().Length > 100)
+            errores.Add("La versión del sistema operativo no puede superar los 100 caracteres.");
+
+        if (nucleos is < 1 or > 65536)
+            errores.Add("El número de núcleos debe ser un entero entre 1 y 65536.");
+
+        if (ramGb <= 0 || ramGb > 1_000_000)
+            errores.Add("La memoria RAM debe ser un número mayor que 0 y no superar 1000000 GB.");
+
+        if (tipoGestionHardware.HasValue && !Enum.IsDefined(tipoGestionHardware.Value))
+            errores.Add("El tipo de gestión debe ser 'Ilo', 'Idrac', 'Ipmi' u 'Otro'.");
+
+        if (!string.IsNullOrWhiteSpace(ipGestionHardware) &&
+            !IPAddress.TryParse(ipGestionHardware.Trim(), out _))
+            errores.Add("La IP de gestión debe ser una dirección IPv4 o IPv6 válida.");
+
+        if (naturaleza == NaturalezaServidor.Virtual &&
+            (tipoGestionHardware.HasValue || !string.IsNullOrWhiteSpace(ipGestionHardware)))
+            errores.Add("La gestión iLO/iDRAC/IPMI solo se puede registrar en servidores físicos.");
+
+        return errores;
+    }
+
+    private static void ValidarInterfaz(
+        InterfazRedServidorRequest interfaz,
+        int indice,
+        ICollection<string> errores)
+    {
+        var prefijo = $"La interfaz en la posición {indice}";
+        if (string.IsNullOrWhiteSpace(interfaz.Nombre))
+            errores.Add($"{prefijo} debe tener un nombre.");
+        else if (interfaz.Nombre.Trim().Length > 100)
+            errores.Add($"{prefijo} no puede superar los 100 caracteres.");
+
+        if (!string.IsNullOrWhiteSpace(interfaz.DireccionMac) &&
+            !EsMacValida(interfaz.DireccionMac.Trim()))
+            errores.Add($"{prefijo} tiene una dirección MAC inválida; usa el formato AA:BB:CC:DD:EE:FF.");
+
+        if (interfaz.DireccionesIp is null)
+        {
+            errores.Add($"{prefijo} debe incluir 'direccionesIp'. Si no tiene IP, envía una lista vacía.");
+            return;
+        }
+
+        var direcciones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (var ipIndex = 0; ipIndex < interfaz.DireccionesIp.Count; ipIndex++)
+        {
+            var ip = interfaz.DireccionesIp[ipIndex];
+            if (ip is null || string.IsNullOrWhiteSpace(ip.Direccion))
+            {
+                errores.Add($"{prefijo}: la dirección IP en la posición {ipIndex} es obligatoria.");
+                continue;
+            }
+
+            var direccion = ip.Direccion.Trim();
+            if (!IPAddress.TryParse(direccion, out _))
+                errores.Add($"{prefijo}: '{direccion}' no es una dirección IPv4 o IPv6 válida.");
+            else if (!direcciones.Add(direccion))
+                errores.Add($"{prefijo}: la dirección IP '{direccion}' está repetida.");
+        }
+    }
+
+    private static bool DatosValidos(InterfazRedServidorRequest request)
+    {
+        var errores = new List<string>();
+        ValidarInterfaz(request, 0, errores);
+        return errores.Count == 0;
+    }
+
+    private static string? NormalizarIp(string? ip) =>
+        string.IsNullOrWhiteSpace(ip) ? null : IPAddress.Parse(ip.Trim()).ToString();
 
     private static bool EsMacValida(string direccionMac) =>
         System.Text.RegularExpressions.Regex.IsMatch(
@@ -491,14 +638,16 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         new(
             servidor.Id,
             servidor.EmpresaId,
-            servidor.ServidorProxmoxId,
-            servidor.ServidorProxmox?.Nombre,
+            servidor.Naturaleza,
+            servidor.ServidorAnfitrionId,
+            servidor.ServidorAnfitrion?.Nombre,
             servidor.Nombre,
-            servidor.Tipo,
-            servidor.SistemaOperativo,
+            servidor.Plataforma,
             servidor.VersionSistemaOperativo,
             servidor.Nucleos,
             servidor.RamGb,
+            servidor.TipoGestionHardware,
+            servidor.IpGestionHardware,
             servidor.InterfacesRed
                 .OrderBy(interfaz => interfaz.Nombre)
                 .Select(Mapear)
