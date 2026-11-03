@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiBackend.Data;
@@ -66,6 +67,9 @@ public sealed record CrearServidorRequest
     [StringLength(45)]
     public string? IpGestionHardware { get; init; }
 
+    /// <summary>Información JSON opcional, por ejemplo accesos remotos, usuarios administrativos o redes VPN.</summary>
+    public JsonElement DatosOpcionales { get; init; }
+
     /// <summary>Interfaces de red iniciales del servidor.</summary>
     [Required]
     public List<InterfazRedServidorRequest> InterfacesRed { get; init; } = [];
@@ -105,6 +109,9 @@ public sealed record ActualizarServidorRequest
     /// <summary>IP del controlador de gestión del hardware físico.</summary>
     [StringLength(45)]
     public string? IpGestionHardware { get; init; }
+
+    /// <summary>Información JSON opcional; si se omite se conserva el valor y si se envía null se elimina.</summary>
+    public JsonElement DatosOpcionales { get; init; }
 }
 
 /// <summary>Dirección IP almacenada en una interfaz.</summary>
@@ -131,6 +138,7 @@ public sealed record ServidorResponse(
     decimal RamGb,
     TipoGestionHardware? TipoGestionHardware,
     string? IpGestionHardware,
+    JsonElement? DatosOpcionales,
     IReadOnlyList<InterfazRedServidorResponse> InterfacesRed);
 
 [ApiController]
@@ -211,6 +219,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
             ServidorAnfitrionId = request.ServidorAnfitrionId,
             TipoGestionHardware = request.TipoGestionHardware,
             IpGestionHardware = NormalizarIp(request.IpGestionHardware),
+            DatosOpcionales = SerializarDatosOpcionales(request.DatosOpcionales),
             InterfacesRed = request.InterfacesRed.Select(CrearInterfaz).ToList()
         };
 
@@ -272,6 +281,8 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         servidor.ServidorAnfitrionId = request.ServidorAnfitrionId;
         servidor.TipoGestionHardware = request.TipoGestionHardware;
         servidor.IpGestionHardware = NormalizarIp(request.IpGestionHardware);
+        if (request.DatosOpcionales.ValueKind != JsonValueKind.Undefined)
+            servidor.DatosOpcionales = SerializarDatosOpcionales(request.DatosOpcionales);
 
         await context.SaveChangesAsync(cancellationToken);
         return NoContent();
@@ -613,6 +624,11 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     private static string? NormalizarIp(string? ip) =>
         string.IsNullOrWhiteSpace(ip) ? null : IPAddress.Parse(ip.Trim()).ToString();
 
+    private static string? SerializarDatosOpcionales(JsonElement datosOpcionales) =>
+        datosOpcionales.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
+            ? null
+            : datosOpcionales.GetRawText();
+
     private static bool EsMacValida(string direccionMac) =>
         System.Text.RegularExpressions.Regex.IsMatch(
             direccionMac,
@@ -648,6 +664,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
             servidor.RamGb,
             servidor.TipoGestionHardware,
             servidor.IpGestionHardware,
+            DeserializarDatosOpcionales(servidor.DatosOpcionales),
             servidor.InterfacesRed
                 .OrderBy(interfaz => interfaz.Nombre)
                 .Select(Mapear)
@@ -662,4 +679,13 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
                 .OrderBy(ip => ip.Direccion)
                 .Select(ip => new DireccionIpServidorResponse(ip.Id, ip.Direccion))
                 .ToList());
+
+    private static JsonElement? DeserializarDatosOpcionales(string? datosOpcionales)
+    {
+        if (datosOpcionales is null)
+            return null;
+
+        using var documento = JsonDocument.Parse(datosOpcionales);
+        return documento.RootElement.Clone();
+    }
 }

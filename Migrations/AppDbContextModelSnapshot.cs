@@ -261,6 +261,9 @@ namespace MiBackend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("DatosOpcionales")
+                        .HasColumnType("jsonb");
+
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 

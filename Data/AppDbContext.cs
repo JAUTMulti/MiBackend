@@ -83,6 +83,7 @@ public class AppDbContext : DbContext
                 .HasConversion<string>()
                 .HasMaxLength(20);
             entity.Property(servidor => servidor.IpGestionHardware).HasMaxLength(45);
+            entity.Property(servidor => servidor.DatosOpcionales).HasColumnType("jsonb");
             entity.HasOne(servidor => servidor.Empresa)
                 .WithMany(empresa => empresa.Servidores)
                 .HasForeignKey(servidor => servidor.EmpresaId)

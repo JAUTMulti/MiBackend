@@ -13,6 +13,7 @@ public class Servidor
     public decimal RamGb { get; set; }
     public TipoGestionHardware? TipoGestionHardware { get; set; }
     public string? IpGestionHardware { get; set; }
+    public string? DatosOpcionales { get; set; }
     public Empresa Empresa { get; set; } = null!;
     public Servidor? ServidorAnfitrion { get; set; }
     public ICollection<Servidor> ServidoresAlojados { get; set; } = [];

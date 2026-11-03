@@ -183,6 +183,14 @@ Content-Type: application/json
   "ramGb": 128,
   "tipoGestionHardware": "Ipmi",
   "ipGestionHardware": "192.168.1.11",
+  "datosOpcionales": {
+    "anydesk": { "id": "123456789" },
+    "usuariosAdministrativos": [
+      { "usuario": "admin-sistemas", "rol": "Administrador" }
+    ],
+    "radminVpn": { "red": "10.10.0.0/24" },
+    "tailscale": { "hostname": "proxmox-principal" }
+  },
   "interfacesRed": [
     {
       "nombre": "vmbr0",
@@ -303,7 +311,15 @@ Content-Type: application/json
   "versionSistemaOperativo": "24.04.1 LTS",
   "nucleos": 12,
   "ramGb": 48,
-  "servidorAnfitrionId": 1
+  "servidorAnfitrionId": 1,
+  "datosOpcionales": {
+    "anydesk": { "id": "123456789" },
+    "usuariosAdministrativos": [
+      { "usuario": "admin-sistemas", "rol": "Administrador" }
+    ],
+    "radminVpn": { "red": "10.10.0.0/24" },
+    "tailscale": { "hostname": "proxmox-principal" }
+  }
 }
 
 ###
