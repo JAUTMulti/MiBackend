@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using MiBackend.Authorization;
 using MiBackend.Data;
 using MiBackend.Models;
 
@@ -9,6 +11,7 @@ namespace MiBackend.Features.Productos;
 public record ActualizarProductoRequest(string Nombre, decimal Precio);
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.ProductosWrite)]
 [Route("api/productos")]
 public class ActualizarProductoController : ControllerBase
 {

@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MiBackend.Authorization;
 using MiBackend.Data;
 using MiBackend.Models;
 
@@ -71,6 +73,7 @@ public sealed record EmpresaResponse(
     IReadOnlyList<SedeEmpresaResponse> Sedes);
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.EmpresasRead)]
 [Route("api/empresas")]
 public sealed class EmpresasController(AppDbContext context) : ControllerBase
 {
@@ -105,6 +108,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Crea una empresa junto con sus sedes iniciales.</summary>
+    [Authorize(Policy = PermissionPolicies.EmpresasWrite)]
     [HttpPost]
     [ProducesResponseType(typeof(EmpresaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -135,6 +139,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Actualiza una empresa y reemplaza la lista completa de sus sedes.</summary>
+    [Authorize(Policy = PermissionPolicies.EmpresasWrite)]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -174,6 +179,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Habilita o deshabilita una empresa sin modificar sus sedes.</summary>
+    [Authorize(Policy = PermissionPolicies.EmpresasWrite)]
     [HttpPatch("{id:int}/estado")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -195,6 +201,7 @@ public sealed class EmpresasController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Elimina una empresa y sus sedes asociadas.</summary>
+    [Authorize(Policy = PermissionPolicies.EmpresasWrite)]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -2,8 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MiBackend.Authorization;
 using MiBackend.Data;
 using MiBackend.Models;
 
@@ -145,6 +147,7 @@ public sealed record ServidorResponse(
     IReadOnlyList<InterfazRedServidorResponse> InterfacesRed);
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.ServidoresRead)]
 [Route("api/empresas/{empresaId:int}/servidores")]
 public sealed class ServidoresController(AppDbContext context) : ControllerBase
 {
@@ -187,6 +190,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Registra un servidor, sus interfaces e IP iniciales.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpPost]
     [ProducesResponseType(typeof(ServidorResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -237,6 +241,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Actualiza los datos y recursos del servidor, conservando sus interfaces.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpPut("{servidorId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -292,6 +297,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Elimina un servidor que no tenga otras máquinas virtuales alojadas.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpDelete("{servidorId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -337,6 +343,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Agrega una interfaz de red y sus IP a un servidor.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpPost("{servidorId:int}/interfaces")]
     [ProducesResponseType(typeof(InterfazRedServidorResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -375,6 +382,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Actualiza una interfaz y reemplaza sus direcciones IP.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpPut("{servidorId:int}/interfaces/{interfazId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -415,6 +423,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Elimina una interfaz y las direcciones IP que contiene.</summary>
+    [Authorize(Policy = PermissionPolicies.ServidoresWrite)]
     [HttpDelete("{servidorId:int}/interfaces/{interfazId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

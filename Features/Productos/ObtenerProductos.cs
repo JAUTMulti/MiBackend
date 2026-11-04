@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MiBackend.Data;
 using MiBackend.Models;
+using MiBackend.Authorization;
 
 namespace MiBackend.Features.Productos;
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.ProductosRead)]
 [Route("api/productos")]
 public class ObtenerProductosController : ControllerBase
 {

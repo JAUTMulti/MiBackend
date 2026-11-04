@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<Empresa> Empresas => Set<Empresa>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Sede> Sedes => Set<Sede>();
     public DbSet<Servidor> Servidores => Set<Servidor>();
     public DbSet<InterfazRed> InterfacesRed => Set<InterfazRed>();
@@ -24,6 +25,17 @@ public class AppDbContext : DbContext
             entity.Property(empresa => empresa.Nit).HasMaxLength(20);
             entity.Property(empresa => empresa.Nombre).HasMaxLength(200);
             entity.HasIndex(empresa => empresa.Nit).IsUnique();
+        });
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.Property(usuario => usuario.Nombre).HasMaxLength(150);
+            entity.Property(usuario => usuario.Email).HasMaxLength(254);
+            entity.Property(usuario => usuario.EmailNormalizado).HasMaxLength(254);
+            entity.Property(usuario => usuario.PasswordHash).HasMaxLength(500);
+            entity.Property(usuario => usuario.Rol).HasConversion<string>().HasMaxLength(30);
+            entity.Property(usuario => usuario.SecurityStamp).HasMaxLength(32);
+            entity.HasIndex(usuario => usuario.EmailNormalizado).IsUnique();
         });
 
         modelBuilder.Entity<Sede>()

@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MiBackend.Data;
+using MiBackend.Authorization;
 
 namespace MiBackend.Features.Productos;
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.ProductosWrite)]
 [Route("api/productos")]
 public class EliminarProductoController : ControllerBase
 {

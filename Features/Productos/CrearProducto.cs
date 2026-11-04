@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiBackend.Data;
 using MiBackend.Models;
+using MiBackend.Authorization;
 
 namespace MiBackend.Features.Productos;
 
@@ -9,6 +11,7 @@ public record CrearProductoRequest(string Nombre, decimal Precio);
 public record ProductoResponse(int Id, string Nombre, decimal Precio, DateTime FechaCreacion);
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.ProductosWrite)]
 [Route("api/productos")]
 public class CrearProductoController : ControllerBase
 {

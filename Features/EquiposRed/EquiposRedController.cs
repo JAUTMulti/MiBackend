@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MiBackend.Authorization;
 using MiBackend.Data;
 using MiBackend.Models;
 
@@ -124,6 +126,7 @@ public sealed record EquipoRedResponse(
     IReadOnlyList<InterfazEquipoRedResponse> Interfaces);
 
 [ApiController]
+[Authorize(Policy = PermissionPolicies.EquiposRedRead)]
 [Route("api/empresas/{empresaId:int}/equipos-red")]
 public sealed class EquiposRedController(AppDbContext context) : ControllerBase
 {
@@ -163,6 +166,7 @@ public sealed class EquiposRedController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Registra un equipo de red con sus interfaces e IP.</summary>
+    [Authorize(Policy = PermissionPolicies.EquiposRedWrite)]
     [HttpPost]
     [ProducesResponseType(typeof(EquipoRedResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -217,6 +221,7 @@ public sealed class EquiposRedController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Actualiza un equipo; la lista de interfaces reemplaza las existentes.</summary>
+    [Authorize(Policy = PermissionPolicies.EquiposRedWrite)]
     [HttpPut("{equipoId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -268,6 +273,7 @@ public sealed class EquiposRedController(AppDbContext context) : ControllerBase
     }
 
     /// <summary>Elimina un equipo de red y sus interfaces e IP asociadas.</summary>
+    [Authorize(Policy = PermissionPolicies.EquiposRedWrite)]
     [HttpDelete("{equipoId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

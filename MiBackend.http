@@ -1,13 +1,37 @@
 @MiBackend_HostAddress = http://localhost:5135
 
+### Inicia sesión primero; configura Jwt__SigningKey (mínimo 32 bytes aleatorios).
+### En la primera ejecución también configura InitialAdmin__Email y InitialAdmin__Password (mínimo 12 caracteres).
+# @name login
+POST {{MiBackend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@ejemplo.com",
+  "password": "REEMPLAZAR_CON_LA_CONTRASENA_CONFIGURADA"
+}
+
+###
+
+@accessToken = {{login.response.body.$.accessToken}}
+
+### Consultar el usuario autenticado
+GET {{MiBackend_HostAddress}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
 ### Listar empresas
 GET {{MiBackend_HostAddress}}/api/empresas
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
 
 ### Consultar una empresa
 GET {{MiBackend_HostAddress}}/api/empresas/1
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
@@ -15,6 +39,7 @@ Accept: application/json
 ### Crear una empresa con sedes
 POST {{MiBackend_HostAddress}}/api/empresas
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nit": "900123456-7",
@@ -35,6 +60,7 @@ Content-Type: application/json
 ### Actualizar una empresa y reemplazar todas sus sedes
 PUT {{MiBackend_HostAddress}}/api/empresas/1
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nit": "900123456-7",
@@ -52,6 +78,7 @@ Content-Type: application/json
 ### Deshabilitar una empresa sin modificar sus sedes
 PATCH {{MiBackend_HostAddress}}/api/empresas/1/estado
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "habilitada": false
@@ -61,12 +88,14 @@ Content-Type: application/json
 
 ### Eliminar una empresa y sus sedes
 DELETE {{MiBackend_HostAddress}}/api/empresas/1
+Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Registrar un firewall Fortinet en una sede de la empresa
 POST {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "sedeId": 1,
@@ -100,6 +129,7 @@ Content-Type: application/json
 ### Registrar un switch administrable MikroTik
 POST {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "sedeId": 1,
@@ -123,12 +153,14 @@ Content-Type: application/json
 
 ### Listar equipos de red de la empresa con interfaces e IP
 GET {{MiBackend_HostAddress}}/api/empresas/1/equipos-red
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
 
 ### Consultar un equipo de red
 GET {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
@@ -136,6 +168,7 @@ Accept: application/json
 ### Actualizar el equipo y reemplazar su lista completa de interfaces
 PUT {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "sedeId": 1,
@@ -167,12 +200,14 @@ Content-Type: application/json
 
 ### Eliminar un equipo de red y sus interfaces/IP
 DELETE {{MiBackend_HostAddress}}/api/empresas/1/equipos-red/1
+Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Registrar un servidor físico con plataforma Proxmox
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "Proxmox principal",
@@ -208,6 +243,7 @@ Content-Type: application/json
 ### Registrar un servidor físico Windows Server con iDRAC
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "Host Hyper-V sucursal",
@@ -234,6 +270,7 @@ Content-Type: application/json
 ### Registrar un servidor físico zVirt
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "Host zVirt principal",
@@ -258,6 +295,7 @@ Content-Type: application/json
 ### Reemplaza servidorAnfitrionId por el ID del anfitrión físico (Proxmox, Hyper-V, zVirt, etc.).
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "Servidor Ubuntu de aplicaciones",
@@ -289,12 +327,14 @@ Content-Type: application/json
 
 ### Consultar todos los servidores, interfaces e IP de una empresa
 GET {{MiBackend_HostAddress}}/api/empresas/1/servidores
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
 
 ### Consultar un servidor por empresa e ID de servidor
 GET {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
+Authorization: Bearer {{accessToken}}
 Accept: application/json
 
 ###
@@ -303,6 +343,7 @@ Accept: application/json
 ### Las interfaces existentes se conservan.
 PUT {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "Servidor Ubuntu de aplicaciones",
@@ -327,6 +368,7 @@ Content-Type: application/json
 ### Agregar una interfaz y sus direcciones IP al servidor
 POST {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "ens20",
@@ -341,6 +383,7 @@ Content-Type: application/json
 ### Reemplazar los datos y todas las IP de una interfaz
 PUT {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces/1
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
   "nombre": "ens18",
@@ -355,8 +398,38 @@ Content-Type: application/json
 
 ### Eliminar una interfaz y sus IP
 DELETE {{MiBackend_HostAddress}}/api/empresas/1/servidores/2/interfaces/1
+Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Eliminar un servidor (las máquinas virtuales quedan sin host asociado)
 DELETE {{MiBackend_HostAddress}}/api/empresas/1/servidores/2
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Crear usuario global de solo lectura (solo administrador)
+POST {{MiBackend_HostAddress}}/api/usuarios
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "nombre": "Usuario de consulta",
+  "email": "consulta@ejemplo.com",
+  "password": "CAMBIAR_POR_UNA_CONTRASENA_SEGURA",
+  "rol": "Lector"
+}
+
+###
+
+### Cambiar rol, estado o datos de usuario (solo administrador)
+PUT {{MiBackend_HostAddress}}/api/usuarios/2
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "nombre": "Usuario de consulta",
+  "email": "consulta@ejemplo.com",
+  "rol": "Lector",
+  "activo": true
+}
