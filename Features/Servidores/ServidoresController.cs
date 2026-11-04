@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiBackend.Data;
@@ -19,9 +20,9 @@ public sealed record DireccionIpServidorRequest
 /// <summary>Interfaz de red y sus direcciones IP.</summary>
 public sealed record InterfazRedServidorRequest
 {
-    /// <summary>Nombre de la interfaz, por ejemplo ens18 o Ethernet.</summary>
-    [Required, StringLength(100)]
-    public required string Nombre { get; init; }
+    /// <summary>Nombre opcional de la interfaz, por ejemplo ens18 o Ethernet.</summary>
+    [StringLength(100)]
+    public string? Nombre { get; init; }
 
     /// <summary>Dirección MAC de la interfaz, si está disponible.</summary>
     [StringLength(17)]
@@ -61,6 +62,7 @@ public sealed record CrearServidorRequest
     public int? ServidorAnfitrionId { get; init; }
 
     /// <summary>Tipo de controlador de gestión fuera de banda, por ejemplo iLO, iDRAC o IPMI.</summary>
+    [JsonConverter(typeof(OptionalTipoGestionHardwareJsonConverter))]
     public TipoGestionHardware? TipoGestionHardware { get; init; }
 
     /// <summary>IP del controlador de gestión del hardware físico.</summary>
@@ -104,6 +106,7 @@ public sealed record ActualizarServidorRequest
     public int? ServidorAnfitrionId { get; init; }
 
     /// <summary>Tipo de controlador de gestión fuera de banda, por ejemplo iLO, iDRAC o IPMI.</summary>
+    [JsonConverter(typeof(OptionalTipoGestionHardwareJsonConverter))]
     public TipoGestionHardware? TipoGestionHardware { get; init; }
 
     /// <summary>IP del controlador de gestión del hardware físico.</summary>
@@ -120,7 +123,7 @@ public sealed record DireccionIpServidorResponse(int Id, string Direccion);
 /// <summary>Interfaz de red con sus direcciones IP.</summary>
 public sealed record InterfazRedServidorResponse(
     int Id,
-    string Nombre,
+    string? Nombre,
     string? DireccionMac,
     IReadOnlyList<DireccionIpServidorResponse> DireccionesIp);
 
@@ -353,8 +356,9 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
                 cancellationToken))
             return NotFound();
 
-        if (await context.InterfacesRed.AnyAsync(
-                interfaz => interfaz.ServidorId == servidorId && interfaz.Nombre == request.Nombre.Trim(),
+        var nombre = NormalizarNombreInterfaz(request.Nombre);
+        if (nombre is not null && await context.InterfacesRed.AnyAsync(
+                interfaz => interfaz.ServidorId == servidorId && interfaz.Nombre == nombre,
                 cancellationToken))
             return Conflict(new { mensaje = "Ya existe una interfaz con ese nombre en el servidor." });
 
@@ -395,8 +399,8 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         if (interfaz is null)
             return NotFound();
 
-        var nombre = request.Nombre.Trim();
-        if (await context.InterfacesRed.AnyAsync(
+        var nombre = NormalizarNombreInterfaz(request.Nombre);
+        if (nombre is not null && await context.InterfacesRed.AnyAsync(
                 otra => otra.ServidorId == servidorId && otra.Id != interfazId && otra.Nombre == nombre,
                 cancellationToken))
             return Conflict(new { mensaje = "Ya existe una interfaz con ese nombre en el servidor." });
@@ -581,9 +585,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
         ICollection<string> errores)
     {
         var prefijo = $"La interfaz en la posición {indice}";
-        if (string.IsNullOrWhiteSpace(interfaz.Nombre))
-            errores.Add($"{prefijo} debe tener un nombre.");
-        else if (interfaz.Nombre.Trim().Length > 100)
+        if (!string.IsNullOrWhiteSpace(interfaz.Nombre) && interfaz.Nombre.Trim().Length > 100)
             errores.Add($"{prefijo} no puede superar los 100 caracteres.");
 
         if (!string.IsNullOrWhiteSpace(interfaz.DireccionMac) &&
@@ -624,6 +626,9 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     private static string? NormalizarIp(string? ip) =>
         string.IsNullOrWhiteSpace(ip) ? null : IPAddress.Parse(ip.Trim()).ToString();
 
+    private static string? NormalizarNombreInterfaz(string? nombre) =>
+        string.IsNullOrWhiteSpace(nombre) ? null : nombre.Trim();
+
     private static string? SerializarDatosOpcionales(JsonElement datosOpcionales) =>
         datosOpcionales.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
             ? null
@@ -640,7 +645,7 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
     private static InterfazRed CrearInterfaz(InterfazRedServidorRequest request) =>
         new()
         {
-            Nombre = request.Nombre.Trim(),
+            Nombre = NormalizarNombreInterfaz(request.Nombre),
             DireccionMac = NormalizarMac(request.DireccionMac),
             DireccionesIp = CrearDireccionesIp(request.DireccionesIp)
         };
@@ -687,5 +692,41 @@ public sealed class ServidoresController(AppDbContext context) : ControllerBase
 
         using var documento = JsonDocument.Parse(datosOpcionales);
         return documento.RootElement.Clone();
+    }
+}
+
+public sealed class OptionalTipoGestionHardwareJsonConverter : JsonConverter<TipoGestionHardware?>
+{
+    public override TipoGestionHardware? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+
+        if (reader.TokenType != JsonTokenType.String)
+            throw new JsonException("El tipo de gestión de hardware debe ser una cadena.");
+
+        var value = reader.GetString();
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (Enum.TryParse<TipoGestionHardware>(value, ignoreCase: true, out var tipo) &&
+            Enum.IsDefined(tipo))
+            return tipo;
+
+        throw new JsonException("El tipo de gestión debe ser 'Ilo', 'Idrac', 'Ipmi' u 'Otro'.");
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer,
+        TipoGestionHardware? value,
+        JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+            writer.WriteStringValue(value.Value.ToString());
+        else
+            writer.WriteNullValue();
     }
 }

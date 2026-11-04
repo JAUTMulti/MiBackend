@@ -96,7 +96,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<InterfazRed>(entity =>
         {
-            entity.Property(interfaz => interfaz.Nombre).HasMaxLength(100);
+            entity.Property(interfaz => interfaz.Nombre).HasMaxLength(100).IsRequired(false);
             entity.Property(interfaz => interfaz.DireccionMac).HasMaxLength(17);
             entity.HasIndex(interfaz => new { interfaz.ServidorId, interfaz.Nombre }).IsUnique();
             entity.HasMany(interfaz => interfaz.DireccionesIp)

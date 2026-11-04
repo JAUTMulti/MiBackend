@@ -168,7 +168,6 @@ namespace MiBackend.Migrations
                         .HasColumnType("character varying(17)");
 
                     b.Property<string>("Nombre")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
