@@ -1,0 +1,9 @@
+para correr laprimera vez creacion de usuario admini nombre default administrador
+
+dotnet user-secrets set "InitialAdmin:Email" "admin@mivps.com.co" --project MiBackend.csproj
+dotnet user-secrets set "InitialAdmin:Password" "<la misma contraseña que quieres probar>" --project MiBackend.csproj
+dotnet run --project MiBackend.csproj
+
+dotnet user-secrets set "InitialAdmin:Email" "tu-correo@ejemplo.com"
+dotnet user-secrets set "InitialAdmin:Password" "una-contraseña-segura-de-12+"
+dotnet run
