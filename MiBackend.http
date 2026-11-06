@@ -22,6 +22,20 @@ Accept: application/json
 
 ###
 
+### Obtener valores válidos para selectores del frontend
+GET {{MiBackend_HostAddress}}/api/opciones
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
+### Listar todos los servidores físicos que pueden ser anfitriones
+GET {{MiBackend_HostAddress}}/api/servidores/fisicos
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+###
+
 ### Listar empresas
 GET {{MiBackend_HostAddress}}/api/empresas
 Authorization: Bearer {{accessToken}}

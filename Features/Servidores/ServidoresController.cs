@@ -146,11 +146,41 @@ public sealed record ServidorResponse(
     JsonElement? DatosOpcionales,
     IReadOnlyList<InterfazRedServidorResponse> InterfacesRed);
 
+/// <summary>Servidor físico disponible para asignar como anfitrión.</summary>
+public sealed record ServidorAnfitrionResponse(
+    int Id,
+    int EmpresaId,
+    string NombreEmpresa,
+    string Nombre,
+    string Plataforma);
+
 [ApiController]
 [Authorize(Policy = PermissionPolicies.ServidoresRead)]
 [Route("api/empresas/{empresaId:int}/servidores")]
 public sealed class ServidoresController(AppDbContext context) : ControllerBase
 {
+    /// <summary>Lista todos los servidores físicos disponibles como anfitriones.</summary>
+    [HttpGet("/api/servidores/fisicos")]
+    [ProducesResponseType(typeof(IReadOnlyList<ServidorAnfitrionResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ServidorAnfitrionResponse>>> ObtenerServidoresFisicos(
+        CancellationToken cancellationToken)
+    {
+        var servidores = await context.Servidores
+            .AsNoTracking()
+            .Where(servidor => servidor.Naturaleza == NaturalezaServidor.Fisico)
+            .OrderBy(servidor => servidor.Empresa.Nombre)
+            .ThenBy(servidor => servidor.Nombre)
+            .Select(servidor => new ServidorAnfitrionResponse(
+                servidor.Id,
+                servidor.EmpresaId,
+                servidor.Empresa.Nombre,
+                servidor.Nombre,
+                servidor.Plataforma))
+            .ToListAsync(cancellationToken);
+
+        return Ok(servidores);
+    }
+
     /// <summary>Obtiene los servidores de una empresa con sus interfaces e IP.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ServidorResponse>), StatusCodes.Status200OK)]
